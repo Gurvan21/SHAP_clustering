@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any
 import numpy as np
 import shap
-from .base import Explainer
+from ..base import Explainer
 
 class Order1TreeSHAP(Explainer):
     def __init__(self, check_additivity: bool = False, feature_perturbation = "auto" , model_output: str = "raw"):

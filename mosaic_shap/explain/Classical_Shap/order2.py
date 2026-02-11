@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 import numpy as np
 import shap
-from .base import Explainer, predict_score
+from ..base import Explainer, predict_score
 
 @dataclass
 class InteractionResult:

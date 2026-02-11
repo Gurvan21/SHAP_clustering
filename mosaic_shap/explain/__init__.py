@@ -1,2 +1,2 @@
-from .order1 import Order1TreeSHAP, Order1PermutationSHAP, Order1KernelSHAP
-from .order2 import Order2TreeSHAPInteractions, Order2MonteCarloInteractions, Order2RegressionInteractions
+from .Classical_Shap.order1 import Order1TreeSHAP, Order1PermutationSHAP, Order1KernelSHAP
+from .Classical_Shap.order2 import Order2TreeSHAPInteractions, Order2MonteCarloInteractions, Order2RegressionInteractions

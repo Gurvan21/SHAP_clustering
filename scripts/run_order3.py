@@ -5,8 +5,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn import  ensemble
 
 from mosaic_shap.data.Data_Pedagogique import make_dataset_Housing_California
-from mosaic_shap.explain.order2 import Order2TreeSHAPInteractions, Order2MonteCarloInteractions, Order2RegressionInteractions
-from mosaic_shap.explain.order1 import Order1TreeSHAP, Order1PermutationSHAP
+from mosaic_shap.explain.Classical_Shap.order2 import Order2TreeSHAPInteractions, Order2MonteCarloInteractions, Order2RegressionInteractions
+from mosaic_shap.explain.Classical_Shap.order1 import Order1TreeSHAP, Order1PermutationSHAP
 from mosaic_shap.pipeline.vectorize import vectorize_interactions
 from mosaic_shap.pipeline.summarize import summarize_interactions_by_cluster, summarize_order1_by_cluster
 from mosaic_shap.reduction.pca import PCAReducer
