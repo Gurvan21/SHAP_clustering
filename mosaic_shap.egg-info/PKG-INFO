@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: mosaic-shap
+Version: 0.2.0
+Summary: Modular SHAP order-1/order-2 explainability + clustering scripts (HDBSCAN/UMAP).
+Requires-Python: >=3.9

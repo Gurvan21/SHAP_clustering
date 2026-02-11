@@ -41,10 +41,10 @@ def main():
 
     # reduce for clustering/vis
     Z = phi1
-    Zp = PCAReducer(n_components=min(args.pca_dim, Z.shape[1]), random_state=args.seed).fit_transform(Z)
-    Z2d = UMAPReducer(random_state=args.seed).fit_transform(Zp)
+    #Zp = PCAReducer(n_components=min(args.pca_dim, Z.shape[1]), random_state=args.seed).fit_transform(Z)
+    Z2d = UMAPReducer(random_state=args.seed).fit_transform(Z)
 
-    labels = HDBSCANClusterer(min_cluster_size=args.min_cluster_size, min_samples=args.min_samples).fit_predict(Zp)
+    labels = HDBSCANClusterer(min_cluster_size=args.min_cluster_size, min_samples=args.min_samples).fit_predict(Z2d)
 
     scatter_2d(Z2d, labels, "UMAP on SHAP order-1 (colored by cluster)", "figures/order1_umap_by_cluster.png")
     scatter_2d(Z2d, y, "UMAP on SHAP order-1 (colored by class)", "figures/order1_umap_by_class.png")

@@ -6,3 +6,4 @@ hdbscan
 umap-learn
 matplotlib
 pytest
+xgboost

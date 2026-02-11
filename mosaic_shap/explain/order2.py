@@ -15,6 +15,8 @@ class Order2TreeSHAPInteractions(Explainer):
         shap2 = expl.shap_interaction_values(X)
         if isinstance(shap2, list):
             shap2 = shap2[1]
+        if shap2.ndim == 4:
+            shap2 = shap2[:, :, :, 1]
         return InteractionResult(values=np.asarray(shap2))
 
 class Order2MonteCarloInteractions(Explainer):

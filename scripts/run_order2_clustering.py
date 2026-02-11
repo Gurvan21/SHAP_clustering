@@ -51,10 +51,10 @@ def main():
     Z2, iu = vectorize_interactions(shap2, include_diag=False)
 
     # PCA for clustering, UMAP for visualization
-    Zp = PCAReducer(n_components=min(args.pca_dim, Z2.shape[1]), random_state=args.seed).fit_transform(Z2)
-    Z2d = UMAPReducer(random_state=args.seed).fit_transform(Zp)
+    #Zp = PCAReducer(n_components=min(args.pca_dim, Z2.shape[1]), random_state=args.seed).fit_transform(Z2)
+    Z2d = UMAPReducer(random_state=args.seed).fit_transform(Z2)
 
-    labels = HDBSCANClusterer(min_cluster_size=args.min_cluster_size, min_samples=args.min_samples).fit_predict(Zp)
+    labels = HDBSCANClusterer(min_cluster_size=args.min_cluster_size, min_samples=args.min_samples).fit_predict(Z2d)
 
     scatter_2d(Z2d, labels, "UMAP on order-2 interaction vectors (colored by cluster)", "figures/order2_umap_by_cluster.png")
     scatter_2d(Z2d, y, "UMAP on order-2 interaction vectors (colored by class)", "figures/order2_umap_by_class.png")
@@ -63,7 +63,6 @@ def main():
     interaction_names = [f"{fn[i]}×{fn[j]}" for i,j in zip(iu[0], iu[1])]
     heatmap_clusters_vs_interactions(Z2, labels, interaction_names, topk=args.topk_heatmap,
                                      title="Clusters vs interactions (mean signed)", path="figures/order2_heatmap_clusters_interactions.png")
-
     # Summaries
     df_int = summarize_interactions_by_cluster(Z2, labels, iu, fn, topk=8)
     print("\nTop interactions per cluster (mean, mean_abs):")

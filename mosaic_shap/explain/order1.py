@@ -5,7 +5,7 @@ import shap
 from .base import Explainer
 
 class Order1TreeSHAP(Explainer):
-    def __init__(self, check_additivity: bool = False, feature_perturbation: str | None = None, model_output: str = "raw"):
+    def __init__(self, check_additivity: bool = False, feature_perturbation = "auto" , model_output: str = "raw"):
         self.check_additivity = check_additivity
         self.feature_perturbation = feature_perturbation
         self.model_output = model_output
@@ -15,7 +15,12 @@ class Order1TreeSHAP(Explainer):
         vals = expl.shap_values(X, check_additivity=self.check_additivity)
         if isinstance(vals, list):
             vals = vals[1]
-        return np.asarray(vals)
+        vals = np.asarray(vals)
+        if vals.ndim == 3:
+            k = 1 if vals.shape[2] > 1 else 0
+            vals = vals[:, :, k]
+
+        return vals
 
 class Order1PermutationSHAP(Explainer):
     def __init__(self, background: np.ndarray, max_evals: int = 2000):
