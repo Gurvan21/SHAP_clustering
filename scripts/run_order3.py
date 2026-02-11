@@ -2,9 +2,9 @@ import argparse, os
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from xgboost 
+from sklearn import  ensemble
 
-from mosaic_shap.data.Data_Pedagogique import make_dataset_Housing_California_Binary
+from mosaic_shap.data.Data_Pedagogique import make_dataset_Housing_California
 from mosaic_shap.explain.order2 import Order2TreeSHAPInteractions, Order2MonteCarloInteractions, Order2RegressionInteractions
 from mosaic_shap.explain.order1 import Order1TreeSHAP, Order1PermutationSHAP
 from mosaic_shap.pipeline.vectorize import vectorize_interactions
@@ -18,7 +18,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=1200)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--model", choices=["rf","lr","xgb"], default="lr")
+    ap.add_argument("--model", choices=["lr","xgb"], default="xgb")
     ap.add_argument("--algo", choices=["tree","perm"], default="perm")
     ap.add_argument("--pca_dim", type=int, default=20)
     ap.add_argument("--min_cluster_size", type=int, default=60)
@@ -26,12 +26,11 @@ def main():
     args = ap.parse_args()
 
     os.makedirs("figures", exist_ok=True)
-    X, y, meta = make_dataset_Housing_California_Binary(n=args.n, seed=args.seed, p_noise=4)
+    X, y, meta = make_dataset_Housing_California(n=args.n, seed_=args.seed)
     fn = meta["feature_names"]
-    model = XGBRegressor(...)
 
-    if args.model == "rf":
-        model = RandomForestClassifier(n_estimators=250, random_state=args.seed).fit(X, y)
+    if args.model == "xgb":
+        model = ensemble.GradientBoostingRegressor(n_estimators= 500,max_depth= 4,min_samples_split= 5,learning_rate=0.01).fit(X, y)
     else:
         model = LogisticRegression(max_iter=800).fit(X, y)
 
@@ -40,7 +39,7 @@ def main():
     else:
         rng = np.random.default_rng(args.seed)
         bg = X[rng.choice(len(X), size=min(200, len(X)), replace=False)]
-        phi1 = Order1PermutationSHAP(background=bg, max_evals=1200).compute(model, X)
+        phi1 = Order1PermutationSHAP(background=bg, max_evals=1200).compute(model.predict, X)
 
     # reduce for clustering/vis
     Z = phi1
@@ -49,8 +48,8 @@ def main():
 
     labels = HDBSCANClusterer(min_cluster_size=args.min_cluster_size, min_samples=args.min_samples).fit_predict(Z2d)
 
-    scatter_2d(Z2d, labels, "UMAP on SHAP order-1 (colored by cluster)", "figures/order1_umap_by_cluster.png")
-    scatter_2d(Z2d, y, "UMAP on SHAP order-1 (colored by class)", "figures/order1_umap_by_class.png")
+    scatter_2d(Z2d, labels, "UMAP on SHAP order-1 (colored by cluster)", "figures/California_Housing/order1_umap_by_cluster_.png")
+    #scatter_2d(Z2d, y, "UMAP on SHAP order-1 (colored by class)", "figures/order1_umap_by_class.png")
 
     df = summarize_order1_by_cluster(phi1, labels, fn, topk=8)
     print(df.to_string(index=False))
