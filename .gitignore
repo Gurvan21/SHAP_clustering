@@ -1,4 +1,40 @@
+# Virtual environments
 .venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Pytest
 .pytest_cache/
+
+# Packaging
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Figures / outputs
 .figures/
-.mosaic_shap.egg-info/
+*.png
+*.jpg
+*.pdf
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Environment variables
+.env
