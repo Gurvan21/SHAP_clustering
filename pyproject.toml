@@ -7,3 +7,7 @@ name = "mosaic-shap"
 version = "0.2.0"
 description = "Modular SHAP order-1/order-2 explainability + clustering scripts (HDBSCAN/UMAP)."
 requires-python = ">=3.9"
+
+[tool.setuptools.packages.find]
+include = ["mosaic_shap", "mosaic_shap.*"]
+exclude = ["figures", "figures.*"]
