@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Callable, Optional
 import numpy as np
-from .base import Explainer
+from ..base import Explainer
 
 
 def _predict_fn(model: Any) -> Callable[[np.ndarray], np.ndarray]:
@@ -96,5 +96,4 @@ class Order1Banzhaf(Explainer):
             nonzero = np.abs(denom) > 1e-12
             scale[nonzero] = (fx[nonzero] - base) / denom[nonzero]
             out = out * scale[:, None]
-
         return out

@@ -1,0 +1,5 @@
+cluster,coalition,coop,comp,events,coop_rate,comp_rate
+3,spatial,0,80,80,0.0,1.0
+3,socio_eco,0,0,0,0.0,0.0
+3,stock,0,0,0,0.0,0.0
+3,density,0,68,68,0.0,1.0

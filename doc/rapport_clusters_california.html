@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rapport – Étude des clusters California Housing (SHAP & causal)</title>
+  <style>
+    :root { --bg: #1a1b26; --fg: #c0caf5; --muted: #565f89; --accent: #7aa2f7; --card: #24283b; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; margin: 0; padding: 1rem 2rem 2rem; }
+    h1 { color: #7dcfff; border-bottom: 2px solid var(--accent); padding-bottom: .5rem; }
+    h2 { color: #bb9af7; margin-top: 2.5rem; }
+    h3 { color: #9ece6a; margin-top: 1.5rem; }
+    h4 { color: #e0af68; margin-top: 1.25rem; font-size: 1rem; }
+    a { color: var(--accent); }
+    nav { background: var(--card); padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 2rem; }
+    nav ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 1rem; }
+    nav a { text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    figure { margin: 1rem 0; padding: 1rem; background: var(--card); border-radius: 8px; max-width: 100%; }
+    figure img { max-width: 100%; height: auto; display: block; border-radius: 4px; }
+    figcaption { margin-top: .5rem; color: var(--muted); font-size: 0.9rem; }
+    table { border-collapse: collapse; width: 100%; max-width: 500px; margin: 1rem 0; background: var(--card); border-radius: 8px; overflow: hidden; }
+    th, td { padding: .5rem .75rem; text-align: left; border-bottom: 1px solid var(--muted); }
+    th { background: #364a6d; color: #a9b1d6; }
+    .cluster-block { border: 2px solid var(--accent); border-radius: 12px; padding: 1.5rem; margin: 2rem 0; background: var(--card); }
+    .cluster-block h3 { margin-top: 0; }
+    .cluster-meta { color: var(--muted); font-size: 0.95rem; margin-bottom: 1rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .fig-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    @media (max-width: 900px) { .two-col, .fig-row { grid-template-columns: 1fr; } }
+    .intro { max-width: 70ch; color: var(--muted); margin-bottom: 2rem; }
+  </style>
+</head>
+<body>
+
+  <h1>Rapport – Segmentation hiérarchique causale du modèle California Housing</h1>
+  <p class="intro">
+    Ce document combine deux volets :
+    (i) un texte explicatif sur la segmentation hiérarchique (clustering, exploration causale globale et locale,
+    blocs de variables type Owen/Winter, indices de coopération/compétition),
+    (ii) l’ensemble des figures permettant d’observer ces phénomènes cluster par cluster.
+  </p>
+
+  <h2>Résumé des essais réalisés</h2>
+  <p>
+    Le travail s’inscrit dans la perspective d’une <strong>segmentation hiérarchique causale</strong> à deux dimensions :
+    une dimension <strong>verticale</strong> (structure des variables en blocs hiérarchiques, futur Winter causal) et
+    une dimension <strong>horizontale</strong> (segmentation de l’espace des observations en régions locales où le modèle
+    se comporte de manière homogène).
+  </p>
+  <ul>
+    <li><strong>Clustering hiérarchique</strong> : SHAP ordre 1 → clusters globaux (ordre 1) ; puis, pour chaque cluster,
+      SHAP ordre 2 et sous-clusters (ordre 2) avec leurs heatmaps, UMAP et cartes.</li>
+    <li><strong>Approche causale globale et locale</strong> : découverte d’un DAG global et calcul de do-Shapley ;
+      puis, pour chaque cluster ordre 1, découverte d’un DAG local (top-k features) pour explorer les mécanismes causaux
+      spécifiques à chaque région.</li>
+    <li><strong>Blocs de variables Owen-like</strong> : définition de 4 coalitions (spatial, socio-éco, stock, densité),
+      agrégation des contributions SHAP par bloc, vue globale (heatmap clusters × coalitions, UMAP, carte) et barplots
+      par cluster.</li>
+    <li><strong>Indices de coopération / compétition</strong> : pour chaque bloc et chaque cluster, mesure de la part des
+      situations où les deux variables du bloc doivent agir <em>ensemble</em> pour changer la décision (coopération) vs
+      celles où au moins une seule suffit (compétition).</li>
+  </ul>
+  <p>
+    Ces essais sont exploratoires : la taille d’échantillon (3000 points, répartis sur 8 clusters puis sous-clusters)
+    peut être limite pour des estimations causales locales robustes (DAGs, do-calculus). De même, les blocs de variables
+    sont pour l’instant définis de manière raisonnée (spatial/socio-éco/stock/densité), alors qu’un futur travail
+    consistera à <strong>découvrir automatiquement</strong> la hiérarchie des groupes (par clustering hiérarchique dans
+    l’espace SHAP, enrichi par le DAG causal).
+  </p>
+  <p>
+    J’ai lu et essayé de m’aligner sur le workflow proposé (SHAP → interactions → parcellisation → tessellation →
+    personas → narration). Le projet actuel couvre essentiellement :
+    (1) le calcul d’indices de Shapley/SHAP (et prémisses Owen/Winter),
+    (2) l’étude des interactions et des blocs,
+    (3) la parcellisation de l’espace des explications (clusters et sous-clusters),
+    en préparant le terrain pour des valeurs de Winter hiérarchiques causales et une narration plus complète.
+  </p>
+
+  <nav>
+    <strong>Sommaire</strong>
+    <ul>
+      <li><a href="#ordre1">1. Vue d’ensemble ordre 1 (SHAP)</a></li>
+      <li><a href="#causal-global">2. Exploration causale globale (do-Shapley)</a></li>
+      <li><a href="#par-cluster">3. Détail par cluster</a>
+        <ul style="margin-top: .5rem; padding-left: 1rem;">
+          <li><a href="#cluster-0">Cluster 0</a></li>
+          <li><a href="#cluster-1">Cluster 1</a></li>
+          <li><a href="#cluster-2">Cluster 2</a></li>
+          <li><a href="#cluster-3">Cluster 3</a></li>
+          <li><a href="#cluster-4">Cluster 4</a></li>
+          <li><a href="#cluster-5">Cluster 5</a></li>
+          <li><a href="#cluster-6">Cluster 6</a></li>
+          <li><a href="#cluster-7">Cluster 7</a></li>
+        </ul>
+      </li>
+      <li><a href="#coalitions">4. Jeu de coalitions (Owen &amp; Winter)</a></li>
+    </ul>
+  </nav>
+
+  <!-- ========== 1. VUE D'ENSEMBLE ORDRE 1 ========== -->
+  <h2 id="ordre1">1. Vue d’ensemble ordre 1 (SHAP)</h2>
+  <p>
+    Clustering des 3000 points sur les valeurs SHAP (ordre 1) : UMAP + HDBSCAN. Chaque cluster correspond à un
+    « type » de contribution des variables au modèle (prix médian des logements).
+  </p>
+
+  <h3>Résumé des clusters ordre 1</h3>
+  <table>
+    <thead><tr><th>Cluster</th><th>Effectif</th><th>Prix moyen (log)</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td>231</td><td>3.331</td></tr>
+      <tr><td>1</td><td>511</td><td>1.796</td></tr>
+      <tr><td>2</td><td>442</td><td>1.274</td></tr>
+      <tr><td>3</td><td>714</td><td>1.849</td></tr>
+      <tr><td>4</td><td>346</td><td>3.473</td></tr>
+      <tr><td>5</td><td>178</td><td>1.198</td></tr>
+      <tr><td>6</td><td>262</td><td>1.609</td></tr>
+      <tr><td>7</td><td>316</td><td>2.633</td></tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <img src="../figures/california_order1/heatmap_cluster_vs_shap.png" alt="Heatmap cluster vs SHAP ordre 1" width="800">
+    <figcaption><strong>Heatmap cluster vs SHAP (ordre 1).</strong> Profil moyen des valeurs SHAP par cluster.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/california_order1/umap_cluster.png" alt="UMAP couleur cluster ordre 1" width="800">
+    <figcaption><strong>UMAP ordre 1 – couleur = cluster.</strong> Représentation 2D des profils SHAP.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/california_order1/umap_price.png" alt="UMAP couleur prix ordre 1" width="800">
+    <figcaption><strong>UMAP ordre 1 – couleur = prix.</strong> Même espace UMAP, cible (prix médian, log) en couleur.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/california_order1/map_cluster.png" alt="Carte Californie cluster ordre 1" width="800">
+    <figcaption><strong>Carte Californie – cluster ordre 1.</strong> Répartition géographique des clusters.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/california_order1/map_price.png" alt="Carte Californie prix ordre 1" width="800">
+    <figcaption><strong>Carte Californie – prix (ordre 1).</strong> Répartition du prix médian sur la carte.</figcaption>
+  </figure>
+
+  <!-- ========== 2. CAUSAL GLOBAL ========== -->
+  <h2 id="causal-global">2. Exploration causale globale (do-Shapley)</h2>
+  <p>
+    DAG découvert à partir des données (découverte causale), SCM estimé, puis attribution do-Shapley. Clustering des
+    vecteurs do-Shapley (UMAP + HDBSCAN) et visualisations associées.
+  </p>
+
+  <figure>
+    <img src="../figures/causal_shap_california/causal_graph.png" alt="Graphe causal global California" width="800">
+    <figcaption><strong>Graphe causal global (California).</strong> DAG découvert sur les variables du jeu de données.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/causal_shap_california/heatmap_cluster_vs_doshapley.png" alt="Heatmap cluster vs do-Shapley" width="800">
+    <figcaption><strong>Heatmap cluster vs do-Shapley.</strong> Profil moyen des contributions do-Shapley par cluster causal.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/causal_shap_california/umap_cluster.png" alt="UMAP cluster do-Shapley" width="800">
+    <figcaption><strong>UMAP – cluster do-Shapley.</strong> Projection des vecteurs do-Shapley, couleur = cluster.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/causal_shap_california/umap_target.png" alt="UMAP cible do-Shapley" width="800">
+    <figcaption><strong>UMAP – cible (prix).</strong> Même projection, couleur = prix.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/causal_shap_california/map_cluster.png" alt="Carte cluster do-Shapley" width="800">
+    <figcaption><strong>Carte Californie – cluster do-Shapley.</strong> Répartition géographique des clusters causaux.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/causal_shap_california/map_price.png" alt="Carte prix do-Shapley" width="800">
+    <figcaption><strong>Carte Californie – prix (do-Shapley).</strong> Prix sur la carte pour les mêmes points.</figcaption>
+  </figure>
+
+  <!-- ========== 3. DÉTAIL PAR CLUSTER (tout dans un bloc) ========== -->
+  <h2 id="par-cluster">3. Détail par cluster</h2>
+  <p>
+    Pour chaque cluster ordre 1, un seul bloc regroupe : les infos (top features, effectif, prix moyen, arêtes du DAG),
+    le <strong>graphe causal local</strong> (DAG découvert sur les top-k features du cluster), puis les figures des
+    <strong>sous-clusters ordre 2</strong> (heatmap, UMAP, cartes). Tout est regroupé pour faciliter l’interprétation cluster par cluster.
+  </p>
+
+  <figure>
+    <img src="../figures/order2_heatmap_clusters_interactions.png" alt="Heatmap interactions clusters ordre 2" width="800">
+    <figcaption><strong>Vue synthétique ordre 2.</strong> Heatmap des interactions entre clusters ordre 1 et sous-clusters ordre 2.</figcaption>
+  </figure>
+
+  <!-- ---------- Cluster 0 ---------- -->
+  <div class="cluster-block">
+    <h3 id="cluster-0">Cluster 0</h3>
+    <p class="cluster-meta"><strong>Effectif :</strong> 231 — <strong>Prix moyen (log) :</strong> 3.331 — <strong>Top features :</strong> MedInc, Longitude, Latitude, AveOccup, HouseAge — <strong>Arêtes DAG local :</strong> 6</p>
+    <h4>Graphe causal local</h4>
+    <figure>
+      <img src="../figures/causal_shap_california_per_order1_cluster/cluster_0/causal_graph.png" alt="DAG causal local cluster 0" width="700">
+      <figcaption>DAG découvert (GES) sur les top features du cluster 0.</figcaption>
+    </figure>
+    <h4>Sous-clusters ordre 2</h4>
+    <figure>
+      <img src="../figures/california_order2_per_order1_cluster/cluster_0/heatmap_cluster_vs_shap.png" alt="Heatmap ordre 2 cluster 0" width="700">
+      <figcaption>Heatmap sous-clusters vs SHAP (cluster 0).</figcaption>
+    </figure>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_0/umap_cluster.png" alt="UMAP cluster ordre 2 cluster 0" width="400">
+        <figcaption>UMAP – couleur = sous-cluster.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_0/umap_price.png" alt="UMAP prix ordre 2 cluster 0" width="400">
+        <figcaption>UMAP – couleur = prix.</figcaption>
+      </figure>
+    </div>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_0/map_cluster.png" alt="Carte sous-clusters cluster 0" width="400">
+        <figcaption>Carte – sous-clusters.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_0/map_price.png" alt="Carte prix cluster 0" width="400">
+        <figcaption>Carte – prix.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ---------- Cluster 1 ---------- -->
+  <div class="cluster-block">
+    <h3 id="cluster-1">Cluster 1</h3>
+    <p class="cluster-meta"><strong>Effectif :</strong> 511 — <strong>Prix moyen (log) :</strong> 1.796 — <strong>Top features :</strong> MedInc, Latitude, AveOccup, Longitude, AveRooms — <strong>Arêtes DAG local :</strong> 4</p>
+    <h4>Graphe causal local</h4>
+    <figure>
+      <img src="../figures/causal_shap_california_per_order1_cluster/cluster_1/causal_graph.png" alt="DAG causal local cluster 1" width="700">
+      <figcaption>DAG découvert sur les top features du cluster 1.</figcaption>
+    </figure>
+    <h4>Sous-clusters ordre 2</h4>
+    <figure>
+      <img src="../figures/california_order2_per_order1_cluster/cluster_1/heatmap_cluster_vs_shap.png" alt="Heatmap ordre 2 cluster 1" width="700">
+      <figcaption>Heatmap sous-clusters vs SHAP (cluster 1).</figcaption>
+    </figure>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_1/umap_cluster.png" alt="UMAP cluster ordre 2 cluster 1" width="400">
+        <figcaption>UMAP – couleur = sous-cluster.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_1/umap_price.png" alt="UMAP prix ordre 2 cluster 1" width="400">
+        <figcaption>UMAP – couleur = prix.</figcaption>
+      </figure>
+    </div>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_1/map_cluster.png" alt="Carte sous-clusters cluster 1" width="400">
+        <figcaption>Carte – sous-clusters.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_1/map_price.png" alt="Carte prix cluster 1" width="400">
+        <figcaption>Carte – prix.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ---------- Cluster 2 ---------- -->
+  <div class="cluster-block">
+    <h3 id="cluster-2">Cluster 2</h3>
+    <p class="cluster-meta"><strong>Effectif :</strong> 442 — <strong>Prix moyen (log) :</strong> 1.274 — <strong>Top features :</strong> Latitude, MedInc, Longitude, AveOccup, AveRooms — <strong>Arêtes DAG local :</strong> 7</p>
+    <h4>Graphe causal local</h4>
+    <figure>
+      <img src="../figures/causal_shap_california_per_order1_cluster/cluster_2/causal_graph.png" alt="DAG causal local cluster 2" width="700">
+      <figcaption>DAG découvert sur les top features du cluster 2.</figcaption>
+    </figure>
+    <h4>Sous-clusters ordre 2</h4>
+    <figure>
+      <img src="../figures/california_order2_per_order1_cluster/cluster_2/heatmap_cluster_vs_shap.png" alt="Heatmap ordre 2 cluster 2" width="700">
+      <figcaption>Heatmap sous-clusters vs SHAP (cluster 2).</figcaption>
+    </figure>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_2/umap_cluster.png" alt="UMAP cluster ordre 2 cluster 2" width="400">
+        <figcaption>UMAP – couleur = sous-cluster.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_2/umap_price.png" alt="UMAP prix ordre 2 cluster 2" width="400">
+        <figcaption>UMAP – couleur = prix.</figcaption>
+      </figure>
+    </div>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_2/map_cluster.png" alt="Carte sous-clusters cluster 2" width="400">
+        <figcaption>Carte – sous-clusters.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_2/map_price.png" alt="Carte prix cluster 2" width="400">
+        <figcaption>Carte – prix.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ---------- Cluster 3 ---------- -->
+  <div class="cluster-block">
+    <h3 id="cluster-3">Cluster 3</h3>
+    <p class="cluster-meta"><strong>Effectif :</strong> 714 — <strong>Prix moyen (log) :</strong> 1.849 — <strong>Top features :</strong> MedInc, Longitude, AveOccup, Latitude, HouseAge — <strong>Arêtes DAG local :</strong> 7</p>
+    <h4>Graphe causal local</h4>
+    <figure>
+      <img src="../figures/causal_shap_california_per_order1_cluster/cluster_3/causal_graph.png" alt="DAG causal local cluster 3" width="700">
+      <figcaption>DAG découvert sur les top features du cluster 3.</figcaption>
+    </figure>
+    <h4>Sous-clusters ordre 2</h4>
+    <figure>
+      <img src="../figures/california_order2_per_order1_cluster/cluster_3/heatmap_cluster_vs_shap.png" alt="Heatmap ordre 2 cluster 3" width="700">
+      <figcaption>Heatmap sous-clusters vs SHAP (cluster 3).</figcaption>
+    </figure>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_3/umap_cluster.png" alt="UMAP cluster ordre 2 cluster 3" width="400">
+        <figcaption>UMAP – couleur = sous-cluster.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_3/umap_price.png" alt="UMAP prix ordre 2 cluster 3" width="400">
+        <figcaption>UMAP – couleur = prix.</figcaption>
+      </figure>
+    </div>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_3/map_cluster.png" alt="Carte sous-clusters cluster 3" width="400">
+        <figcaption>Carte – sous-clusters.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_3/map_price.png" alt="Carte prix cluster 3" width="400">
+        <figcaption>Carte – prix.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ---------- Cluster 4 ---------- -->
+  <div class="cluster-block">
+    <h3 id="cluster-4">Cluster 4</h3>
+    <p class="cluster-meta"><strong>Effectif :</strong> 346 — <strong>Prix moyen (log) :</strong> 3.473 — <strong>Top features :</strong> MedInc, Latitude, AveOccup, Longitude, HouseAge — <strong>Arêtes DAG local :</strong> 5</p>
+    <h4>Graphe causal local</h4>
+    <figure>
+      <img src="../figures/causal_shap_california_per_order1_cluster/cluster_4/causal_graph.png" alt="DAG causal local cluster 4" width="700">
+      <figcaption>DAG découvert sur les top features du cluster 4.</figcaption>
+    </figure>
+    <h4>Sous-clusters ordre 2</h4>
+    <figure>
+      <img src="../figures/california_order2_per_order1_cluster/cluster_4/heatmap_cluster_vs_shap.png" alt="Heatmap ordre 2 cluster 4" width="700">
+      <figcaption>Heatmap sous-clusters vs SHAP (cluster 4).</figcaption>
+    </figure>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_4/umap_cluster.png" alt="UMAP cluster ordre 2 cluster 4" width="400">
+        <figcaption>UMAP – couleur = sous-cluster.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_4/umap_price.png" alt="UMAP prix ordre 2 cluster 4" width="400">
+        <figcaption>UMAP – couleur = prix.</figcaption>
+      </figure>
+    </div>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_4/map_cluster.png" alt="Carte sous-clusters cluster 4" width="400">
+        <figcaption>Carte – sous-clusters.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_4/map_price.png" alt="Carte prix cluster 4" width="400">
+        <figcaption>Carte – prix.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ---------- Cluster 5 ---------- -->
+  <div class="cluster-block">
+    <h3 id="cluster-5">Cluster 5</h3>
+    <p class="cluster-meta"><strong>Effectif :</strong> 178 — <strong>Prix moyen (log) :</strong> 1.198 — <strong>Top features :</strong> Longitude, MedInc, AveOccup, Latitude, AveRooms — <strong>Arêtes DAG local :</strong> 4</p>
+    <h4>Graphe causal local</h4>
+    <figure>
+      <img src="../figures/causal_shap_california_per_order1_cluster/cluster_5/causal_graph.png" alt="DAG causal local cluster 5" width="700">
+      <figcaption>DAG découvert sur les top features du cluster 5.</figcaption>
+    </figure>
+    <h4>Sous-clusters ordre 2</h4>
+    <p><em>Pas de heatmap ordre 2 pour ce cluster (un seul sous-cluster ou non généré).</em></p>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_5/umap_cluster.png" alt="UMAP cluster ordre 2 cluster 5" width="400">
+        <figcaption>UMAP – couleur = sous-cluster.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_5/umap_price.png" alt="UMAP prix ordre 2 cluster 5" width="400">
+        <figcaption>UMAP – couleur = prix.</figcaption>
+      </figure>
+    </div>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_5/map_cluster.png" alt="Carte sous-clusters cluster 5" width="400">
+        <figcaption>Carte – sous-clusters.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_5/map_price.png" alt="Carte prix cluster 5" width="400">
+        <figcaption>Carte – prix.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ---------- Cluster 6 ---------- -->
+  <div class="cluster-block">
+    <h3 id="cluster-6">Cluster 6</h3>
+    <p class="cluster-meta"><strong>Effectif :</strong> 262 — <strong>Prix moyen (log) :</strong> 1.609 — <strong>Top features :</strong> Longitude, Latitude, MedInc, AveOccup, HouseAge — <strong>Arêtes DAG local :</strong> 7</p>
+    <h4>Graphe causal local</h4>
+    <figure>
+      <img src="../figures/causal_shap_california_per_order1_cluster/cluster_6/causal_graph.png" alt="DAG causal local cluster 6" width="700">
+      <figcaption>DAG découvert sur les top features du cluster 6.</figcaption>
+    </figure>
+    <h4>Sous-clusters ordre 2</h4>
+    <figure>
+      <img src="../figures/california_order2_per_order1_cluster/cluster_6/heatmap_cluster_vs_shap.png" alt="Heatmap ordre 2 cluster 6" width="700">
+      <figcaption>Heatmap sous-clusters vs SHAP (cluster 6).</figcaption>
+    </figure>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_6/umap_cluster.png" alt="UMAP cluster ordre 2 cluster 6" width="400">
+        <figcaption>UMAP – couleur = sous-cluster.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_6/umap_price.png" alt="UMAP prix ordre 2 cluster 6" width="400">
+        <figcaption>UMAP – couleur = prix.</figcaption>
+      </figure>
+    </div>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_6/map_cluster.png" alt="Carte sous-clusters cluster 6" width="400">
+        <figcaption>Carte – sous-clusters.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_6/map_price.png" alt="Carte prix cluster 6" width="400">
+        <figcaption>Carte – prix.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ---------- Cluster 7 ---------- -->
+  <div class="cluster-block">
+    <h3 id="cluster-7">Cluster 7</h3>
+    <p class="cluster-meta"><strong>Effectif :</strong> 316 — <strong>Prix moyen (log) :</strong> 2.633 — <strong>Top features :</strong> Latitude, AveOccup, MedInc, Longitude, HouseAge — <strong>Arêtes DAG local :</strong> 5</p>
+    <h4>Graphe causal local</h4>
+    <figure>
+      <img src="../figures/causal_shap_california_per_order1_cluster/cluster_7/causal_graph.png" alt="DAG causal local cluster 7" width="700">
+      <figcaption>DAG découvert sur les top features du cluster 7.</figcaption>
+    </figure>
+    <h4>Sous-clusters ordre 2</h4>
+    <figure>
+      <img src="../figures/california_order2_per_order1_cluster/cluster_7/heatmap_cluster_vs_shap.png" alt="Heatmap ordre 2 cluster 7" width="700">
+      <figcaption>Heatmap sous-clusters vs SHAP (cluster 7).</figcaption>
+    </figure>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_7/umap_cluster.png" alt="UMAP cluster ordre 2 cluster 7" width="400">
+        <figcaption>UMAP – couleur = sous-cluster.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_7/umap_price.png" alt="UMAP prix ordre 2 cluster 7" width="400">
+        <figcaption>UMAP – couleur = prix.</figcaption>
+      </figure>
+    </div>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_7/map_cluster.png" alt="Carte sous-clusters cluster 7" width="400">
+        <figcaption>Carte – sous-clusters.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/california_order2_per_order1_cluster/cluster_7/map_price.png" alt="Carte prix cluster 7" width="400">
+        <figcaption>Carte – prix.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ========== 4. JEU DE COALITIONS (OWEN & WINTER) ========== -->
+  <h2 id="coalitions">4. Jeu de coalitions (Owen &amp; Winter)</h2>
+  <p>
+    Cette section résume, pour chaque cluster ordre 1, l'importance des <strong>blocs de variables</strong> définis comme
+    coalitions (Spatial, Socio-éco, Stock/Taille, Densité), à partir des <strong>valeurs d'Owen</strong> calculées par le
+    script <code>scripts/run_owen_winter_per_cluster.py</code>. Les valeurs de Winter pourront être ajoutées
+    ultérieurement en réutilisant la même structure.
+  </p>
+  <p>
+    Pour chaque cluster, on affiche :
+    (i) un petit tableau avec les valeurs moyennes d'Owen par coalition,
+    (ii) un barplot des coalitions,
+    (iii) un barplot des features (moyenne d'Owen par variable).
+  </p>
+
+  <!-- Résumé texte (facultatif) -->
+  <p style="color: var(--muted); font-size: 0.9rem;">
+    Remarque : les figures ci-dessous supposent que le script a été exécuté, ce qui génère les fichiers
+    <code>figures/owen_winter_california_per_order1_cluster/cluster_k/owen_coalitions_bar.png</code> et
+    <code>owen_features_bar.png</code> pour chaque cluster k.
+  </p>
+
+  <!-- Bloc Owen/Winter par cluster : on réutilise l'ancre #cluster-k pour garder la cohérence visuelle -->
+
+  <div class="cluster-block">
+    <h3>Cluster 0 – coalitions (Owen)</h3>
+    <p class="cluster-meta">
+      Coalitions : Spatial = {Latitude, Longitude} ; Socio-éco = {MedInc, HouseAge} ;
+      Stock/Taille = {AveRooms, AveBedrms} ; Densité = {Population, AveOccup}.
+    </p>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_0/owen_coalitions_bar.png" alt="Cluster 0 – Owen par coalition" width="400">
+        <figcaption>Cluster 0 – valeurs d'Owen moyennes par coalition.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_0/owen_features_bar.png" alt="Cluster 0 – Owen par feature" width="400">
+        <figcaption>Cluster 0 – valeurs d'Owen moyennes par feature.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <div class="cluster-block">
+    <h3>Cluster 1 – coalitions (Owen)</h3>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_1/owen_coalitions_bar.png" alt="Cluster 1 – Owen par coalition" width="400">
+        <figcaption>Cluster 1 – valeurs d'Owen moyennes par coalition.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_1/owen_features_bar.png" alt="Cluster 1 – Owen par feature" width="400">
+        <figcaption>Cluster 1 – valeurs d'Owen moyennes par feature.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <div class="cluster-block">
+    <h3>Cluster 2 – coalitions (Owen)</h3>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_2/owen_coalitions_bar.png" alt="Cluster 2 – Owen par coalition" width="400">
+        <figcaption>Cluster 2 – valeurs d'Owen moyennes par coalition.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_2/owen_features_bar.png" alt="Cluster 2 – Owen par feature" width="400">
+        <figcaption>Cluster 2 – valeurs d'Owen moyennes par feature.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <div class="cluster-block">
+    <h3>Cluster 3 – coalitions (Owen)</h3>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_3/owen_coalitions_bar.png" alt="Cluster 3 – Owen par coalition" width="400">
+        <figcaption>Cluster 3 – valeurs d'Owen moyennes par coalition.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_3/owen_features_bar.png" alt="Cluster 3 – Owen par feature" width="400">
+        <figcaption>Cluster 3 – valeurs d'Owen moyennes par feature.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <div class="cluster-block">
+    <h3>Cluster 4 – coalitions (Owen)</h3>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_4/owen_coalitions_bar.png" alt="Cluster 4 – Owen par coalition" width="400">
+        <figcaption>Cluster 4 – valeurs d'Owen moyennes par coalition.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_4/owen_features_bar.png" alt="Cluster 4 – Owen par feature" width="400">
+        <figcaption>Cluster 4 – valeurs d'Owen moyennes par feature.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <div class="cluster-block">
+    <h3>Cluster 5 – coalitions (Owen)</h3>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_5/owen_coalitions_bar.png" alt="Cluster 5 – Owen par coalition" width="400">
+        <figcaption>Cluster 5 – valeurs d'Owen moyennes par coalition.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_5/owen_features_bar.png" alt="Cluster 5 – Owen par feature" width="400">
+        <figcaption>Cluster 5 – valeurs d'Owen moyennes par feature.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <div class="cluster-block">
+    <h3>Cluster 6 – coalitions (Owen)</h3>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_6/owen_coalitions_bar.png" alt="Cluster 6 – Owen par coalition" width="400">
+        <figcaption>Cluster 6 – valeurs d'Owen moyennes par coalition.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_6/owen_features_bar.png" alt="Cluster 6 – Owen par feature" width="400">
+        <figcaption>Cluster 6 – valeurs d'Owen moyennes par feature.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <div class="cluster-block">
+    <h3>Cluster 7 – coalitions (Owen)</h3>
+    <div class="fig-row">
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_7/owen_coalitions_bar.png" alt="Cluster 7 – Owen par coalition" width="400">
+        <figcaption>Cluster 7 – valeurs d'Owen moyennes par coalition.</figcaption>
+      </figure>
+      <figure>
+        <img src="../figures/owen_winter_california_per_order1_cluster/cluster_7/owen_features_bar.png" alt="Cluster 7 – Owen par feature" width="400">
+        <figcaption>Cluster 7 – valeurs d'Owen moyennes par feature.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ========== 5. XGBoost Joint SHAP (ordre 1 pur + ordre 2) ========== -->
+  <h2 id="xgb-joint">5. XGBoost – SHAP ordre 1 “pur” + interactions ordre 2</h2>
+  <p>
+    Cette section correspond à un pipeline refait « à zéro » sur le dataset California Housing <strong>complet</strong>
+    (n≈20640), en entraînant un modèle <strong>XGBoost</strong>, puis en calculant les <strong>SHAP interaction values</strong>
+    (ordre 2) sur tous les points. Les valeurs d’ordre 1 utilisées ici sont les <strong>effets principaux</strong>
+    (diagonale de la matrice d’interactions), afin que l’ordre 1 soit <strong>sans trace</strong> de l’ordre 2.
+  </p>
+  <p>
+    Pour le clustering, on sélectionne un sous-ensemble de composantes (top‑k main effects + top‑k interactions) selon
+    leur importance RMS (paramétrable), puis on fait UMAP + HDBSCAN comme d’habitude.
+  </p>
+
+  <figure>
+    <img src="../figures/california_xgb_joint/heatmap_cluster_vs_joint_shap.png" alt="Heatmap cluster vs joint SHAP (XGBoost)" width="900">
+    <figcaption><strong>Heatmap clusters × composantes (XGBoost joint SHAP).</strong> Colonnes = main effects et interactions sélectionnées (top‑k RMS).</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/california_xgb_joint/umap_cluster.png" alt="UMAP joint SHAP XGBoost clusters" width="900">
+    <figcaption><strong>UMAP (joint SHAP) – couleur = cluster.</strong> UMAP sur le vecteur (main + interactions sélectionnées), clustering HDBSCAN.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/california_xgb_joint/umap_price.png" alt="UMAP joint SHAP XGBoost prix" width="900">
+    <figcaption><strong>UMAP (joint SHAP) – couleur = prix.</strong> Même projection, couleur = prix.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/california_xgb_joint/map_cluster.png" alt="Carte clusters XGBoost joint SHAP" width="900">
+    <figcaption><strong>Carte Californie – clusters (XGBoost joint SHAP).</strong> Projection géographique des clusters.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/california_xgb_joint/map_price.png" alt="Carte prix XGBoost joint SHAP" width="900">
+    <figcaption><strong>Carte Californie – prix.</strong> Prix sur la carte pour les mêmes points.</figcaption>
+  </figure>
+
+
+  <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--muted);">
+  <p style="color: var(--muted); font-size: 0.9rem;">
+    Rapport généré pour le projet SHAP clustering – California Housing. Chaque cluster regroupe : graphe causal local +
+    heatmap/UMAP/cartes ordre 2, et, si disponible, les figures Owen par coalition/feature.
+  </p>
+
+</body>
+</html>

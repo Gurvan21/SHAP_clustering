@@ -4,7 +4,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
 from mosaic_shap.data.synthetic import make_dataset_overlap_scores_but_separable_interactions
-from mosaic_shap.explain.order1 import Order1TreeSHAP, Order1PermutationSHAP
+from mosaic_shap.explain.Classical_Shap.order1 import Order1TreeSHAP, Order1PermutationSHAP
 from mosaic_shap.reduction.pca import PCAReducer
 from mosaic_shap.reduction.umap_red import UMAPReducer
 from mosaic_shap.clustering.hdbscan_clusterer import HDBSCANClusterer

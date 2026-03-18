@@ -1,3 +1,3 @@
-from .hdbscan_clusterer import HDBSCANClusterer
-from .kmeans_clusterer import KMeansClusterer
-from .agglomerative_clusterer import AgglomerativeClusterer
+from .clusterer import Clusterer, create_clusterer
+
+__all__ = ["Clusterer", "create_clusterer"]

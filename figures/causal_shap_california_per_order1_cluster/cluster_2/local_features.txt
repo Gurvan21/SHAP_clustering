@@ -1,0 +1,3 @@
+top_features: Latitude, MedInc, Longitude, AveOccup, AveRooms
+n_points: 442
+n_edges: 7

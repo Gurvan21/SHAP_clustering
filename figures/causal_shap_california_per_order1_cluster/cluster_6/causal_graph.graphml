@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd"><graph edgedefault="directed"><node id="Longitude"/>
+<node id="Latitude"/>
+<node id="MedInc"/>
+<node id="AveOccup"/>
+<node id="HouseAge"/>
+<node id="price"/>
+<edge source="Longitude" target="price"/>
+<edge source="MedInc" target="AveOccup"/>
+<edge source="AveOccup" target="Latitude"/>
+<edge source="HouseAge" target="Latitude"/>
+<edge source="HouseAge" target="MedInc"/>
+<edge source="price" target="MedInc"/>
+<edge source="price" target="AveOccup"/>
+</graph></graphml>

@@ -1,0 +1,21 @@
+Selected components for clustering (in order):
+00  main:MedInc
+01  main:Latitude
+02  main:Longitude
+03  main:AveOccup
+04  main:AveRooms
+05  main:HouseAge
+06  main:Population
+07  main:AveBedrms
+08  inter:Latitude×Longitude
+09  inter:MedInc×AveOccup
+10  inter:HouseAge×AveOccup
+11  inter:MedInc×AveRooms
+12  inter:MedInc×Longitude
+13  inter:MedInc×HouseAge
+14  inter:MedInc×Latitude
+15  inter:AveOccup×Latitude
+16  inter:HouseAge×Latitude
+17  inter:AveOccup×Longitude
+18  inter:HouseAge×Longitude
+19  inter:AveRooms×Latitude

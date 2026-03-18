@@ -1,2 +1,3 @@
-from .pca import PCAReducer
-from .umap_red import UMAPReducer
+from .reducer import Reducer, create_reducer
+
+__all__ = ["Reducer", "create_reducer"]

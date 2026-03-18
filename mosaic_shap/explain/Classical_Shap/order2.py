@@ -5,9 +5,11 @@ import numpy as np
 import shap
 from ..base import Explainer, predict_score
 
+
 @dataclass
 class InteractionResult:
-    values: np.ndarray  # (n,p,p)
+    values: np.ndarray
+
 
 class Order2TreeSHAPInteractions(Explainer):
     def compute(self, model: Any, X: np.ndarray, **kwargs) -> InteractionResult:
@@ -102,3 +104,7 @@ class Order2RegressionInteractions(Explainer):
                     out[r,j,i] = w[col]
                     col += 1
         return InteractionResult(values=out)
+
+
+# Alias rétrocompatible utilisé par california_housing_shap.py
+Order2Interactions = Order2TreeSHAPInteractions

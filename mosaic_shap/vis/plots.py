@@ -13,6 +13,7 @@ def scatter_2d(Z2d: np.ndarray, color: np.ndarray, title: str, path: str | None 
         plt.savefig(path, dpi=180)
     plt.show()
 
+
 def heatmap_clusters_vs_interactions(Z: np.ndarray, labels: np.ndarray, interaction_names, topk: int = 20, title: str = "", path: str | None = None):
     """Heatmap: clusters (rows) vs interactions (cols).
     - Selects topk interactions globally by mean absolute value.

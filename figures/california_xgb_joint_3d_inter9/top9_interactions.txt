@@ -1,0 +1,10 @@
+Top 9 joint_* interactions by RMS (3D run):
+joint_08_inter_Latitude×Longitude
+joint_09_inter_MedInc×AveOccup
+joint_10_inter_HouseAge×AveOccup
+joint_11_inter_MedInc×AveRooms
+joint_12_inter_MedInc×Longitude
+joint_13_inter_MedInc×HouseAge
+joint_14_inter_MedInc×Latitude
+joint_15_inter_AveOccup×Latitude
+joint_16_inter_HouseAge×Latitude

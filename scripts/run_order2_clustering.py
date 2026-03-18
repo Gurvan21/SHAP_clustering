@@ -4,8 +4,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
 from mosaic_shap.data.synthetic import make_dataset_overlap_scores_but_separable_interactions
-from mosaic_shap.explain.order2 import Order2TreeSHAPInteractions, Order2MonteCarloInteractions, Order2RegressionInteractions
-from mosaic_shap.explain.order1 import Order1TreeSHAP, Order1PermutationSHAP
+from mosaic_shap.explain.Classical_Shap.order2 import Order2TreeSHAPInteractions, Order2MonteCarloInteractions, Order2RegressionInteractions
+from mosaic_shap.explain.Classical_Shap.order1 import Order1TreeSHAP, Order1PermutationSHAP
 from mosaic_shap.pipeline.vectorize import vectorize_interactions
 from mosaic_shap.pipeline.summarize import summarize_interactions_by_cluster, summarize_order1_by_cluster
 from mosaic_shap.reduction.pca import PCAReducer
@@ -61,8 +61,7 @@ def main():
 
     # Build interaction names for heatmap
     interaction_names = [f"{fn[i]}×{fn[j]}" for i,j in zip(iu[0], iu[1])]
-    heatmap_clusters_vs_interactions(Z2, labels, interaction_names, topk=args.topk_heatmap,
-                                     title="Clusters vs interactions (mean signed)", path="figures/order2_heatmap_clusters_interactions.png")
+    heatmap_clusters_vs_interactions(Z2, labels, interaction_names, topk=args.topk_heatmap,title="Clusters vs interactions (mean signed)", path="figures/order2_heatmap_clusters_interactions.png")
     # Summaries
     df_int = summarize_interactions_by_cluster(Z2, labels, iu, fn, topk=8)
     print("\nTop interactions per cluster (mean, mean_abs):")

@@ -1,0 +1,3 @@
+top_features: Longitude, Latitude, MedInc, AveOccup, HouseAge
+n_points: 262
+n_edges: 7

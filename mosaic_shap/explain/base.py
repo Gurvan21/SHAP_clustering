@@ -3,23 +3,24 @@ from abc import ABC, abstractmethod
 from typing import Any
 import numpy as np
 
+
 class Explainer(ABC):
     @abstractmethod
     def compute(self, model: Any, X: np.ndarray, **kwargs):
         raise NotImplementedError
 
+
 def predict_score(model: Any, X: np.ndarray) -> np.ndarray:
-    """1D score used for model-agnostic explainers.
-    - predict_proba[:,1] -> logit
-    - decision_function
-    - predict
+    """
+    Helper utilisé par certains estimateurs d'interactions (ordre 2).
+    Garantit un retour 1D float, en essayant predict_proba puis predict.
     """
     if hasattr(model, "predict_proba"):
-        p = model.predict_proba(X)[:, 1]
-        eps = 1e-9
-        p = np.clip(p, eps, 1 - eps)
-        return np.log(p / (1 - p))
-    if hasattr(model, "decision_function"):
-        s = model.decision_function(X)
-        return np.asarray(s).reshape(-1)
-    return np.asarray(model.predict(X)).reshape(-1)
+        proba = model.predict_proba(X)
+        # binaire: on prend la proba de la classe positive
+        if proba.ndim == 2 and proba.shape[1] >= 2:
+            return np.asarray(proba[:, 1], dtype=float)
+        return np.asarray(proba.squeeze(), dtype=float)
+    if hasattr(model, "predict"):
+        return np.asarray(model.predict(X), dtype=float).squeeze()
+    raise TypeError("Model must implement predict or predict_proba for predict_score.")

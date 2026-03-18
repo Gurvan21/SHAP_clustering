@@ -1,0 +1,11 @@
+Kept joint_* components (sorted by RMS):
+joint_00_main_MedInc
+joint_01_main_Latitude
+joint_02_main_Longitude
+joint_03_main_AveOccup
+joint_04_main_AveRooms
+joint_05_main_HouseAge
+joint_06_main_Population
+joint_07_main_AveBedrms
+joint_08_inter_Latitude×Longitude
+joint_09_inter_MedInc×AveOccup

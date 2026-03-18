@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd"><graph edgedefault="directed"><node id="MedInc"/>
+<node id="HouseAge"/>
+<node id="AveRooms"/>
+<node id="AveBedrms"/>
+<node id="Population"/>
+<node id="AveOccup"/>
+<node id="Latitude"/>
+<node id="Longitude"/>
+<node id="price"/>
+<edge source="MedInc" target="HouseAge"/>
+<edge source="MedInc" target="AveRooms"/>
+<edge source="MedInc" target="AveBedrms"/>
+<edge source="MedInc" target="price"/>
+<edge source="HouseAge" target="Population"/>
+<edge source="HouseAge" target="Latitude"/>
+<edge source="HouseAge" target="price"/>
+<edge source="AveRooms" target="Population"/>
+<edge source="AveRooms" target="Latitude"/>
+<edge source="AveBedrms" target="HouseAge"/>
+<edge source="AveBedrms" target="AveRooms"/>
+<edge source="AveBedrms" target="Latitude"/>
+<edge source="AveOccup" target="AveRooms"/>
+<edge source="AveOccup" target="Population"/>
+<edge source="AveOccup" target="price"/>
+<edge source="Latitude" target="Population"/>
+<edge source="Longitude" target="HouseAge"/>
+<edge source="Longitude" target="AveRooms"/>
+<edge source="Longitude" target="Latitude"/>
+<edge source="price" target="AveRooms"/>
+<edge source="price" target="Latitude"/>
+</graph></graphml>

@@ -6,4 +6,6 @@ hdbscan
 umap-learn
 matplotlib
 pytest
+dowhy
+causal-learn
 xgboost
