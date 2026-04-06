@@ -1,0 +1,7 @@
+{
+  "silhouette": 0.08935341616168666,
+  "davies_bouldin": 1.7980042086795385,
+  "n_clusters": 68,
+  "silhouette_umap": 0.5845367908477783,
+  "stability_ari": 0.026476814708685046
+}

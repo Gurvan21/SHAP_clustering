@@ -1,0 +1,29 @@
+{
+  "seed": 0,
+  "n_samples": 3000,
+  "test_size": 0.2,
+  "use_pca": true,
+  "pca_dim": 30,
+  "umap_n_neighbors": 15,
+  "umap_min_dist": 0.1,
+  "hdbscan_min_cluster_size": 10,
+  "hdbscan_min_samples": 10,
+  "grid_search_hdbscan": true,
+  "grid_hdbscan_cluster_size": [
+    10,
+    20,
+    40,
+    80
+  ],
+  "grid_hdbscan_min_samples": [
+    5,
+    10,
+    20
+  ],
+  "n_stability_runs": 10,
+  "stability_sample_frac": 0.8,
+  "cache_dir": "cache",
+  "output_dir": "figures/ordre2_cluster_test_advanced",
+  "top_interactions_heatmap": 30,
+  "top_interactions_per_cluster": 10
+}

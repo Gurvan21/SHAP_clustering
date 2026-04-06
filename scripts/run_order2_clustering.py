@@ -1,16 +1,16 @@
 import argparse, os
 import numpy as np
+from umap import UMAP as UMAPReducer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from hdbscan import HDBSCAN as HDBSCANClusterer
 
 from mosaic_shap.data.synthetic import make_dataset_overlap_scores_but_separable_interactions
 from mosaic_shap.explain.Classical_Shap.order2 import Order2TreeSHAPInteractions, Order2MonteCarloInteractions, Order2RegressionInteractions
 from mosaic_shap.explain.Classical_Shap.order1 import Order1TreeSHAP, Order1PermutationSHAP
 from mosaic_shap.pipeline.vectorize import vectorize_interactions
 from mosaic_shap.pipeline.summarize import summarize_interactions_by_cluster, summarize_order1_by_cluster
-from mosaic_shap.reduction.pca import PCAReducer
-from mosaic_shap.reduction.umap_red import UMAPReducer
-from mosaic_shap.clustering.hdbscan_clusterer import HDBSCANClusterer
+from sklearn.decomposition import PCA as PCAReducer
 from mosaic_shap.vis.plots import scatter_2d, heatmap_clusters_vs_interactions
 
 def main():
