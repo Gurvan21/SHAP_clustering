@@ -5,6 +5,9 @@ import seaborn as sns
 from typing import Callable, List
 import warnings
 from collections import Counter
+from sklearn.datasets import fetch_california_housing
+from sklearn.ensemble import GradientBoostingRegressor
+import shap
 
 from sklearn.cluster import KMeans, HDBSCAN, AgglomerativeClustering
 from sklearn.metrics import (
@@ -20,23 +23,27 @@ warnings.filterwarnings('ignore')
 
 
 # Chargement des données
-from antakia.utils.examples import fetch_dataset
-df = fetch_dataset('california_housing').drop(['Unnamed: 0'], axis=1, errors='ignore')
+data = fetch_california_housing()
+X = pd.DataFrame(data.data, columns=data.feature_names)
+y = data.target
 
-# Nettoyage des outliers
-df = df.loc[df['Population'] < 10000]
-df = df.loc[df['AveOccup'] < 6]
-df = df.loc[df['AveBedrms'] < 1.5]
-df = df.loc[df['HouseAge'] < 50]
+# Nettoyage des outliers (identique)
+X = X.loc[X['Population'] < 10000]
+X = X.loc[X['AveOccup'] < 6]
+X = X.loc[X['AveBedrms'] < 1.5]
+X = X.loc[X['HouseAge'] < 50]
+X = X.loc[(X['Latitude'] < 38.07) & (X['Latitude'] > 37.2)]
+X = X.loc[(X['Longitude'] > -122.5) & (X['Longitude'] < -121.75)]
+y = y[X.index]  # aligner y
 
-df = df.loc[(df['Latitude'] < 38.07) & (df['Latitude'] > 37.2)]
-df = df.loc[(df['Longitude'] > -122.5) & (df['Longitude'] < -121.75)]
+# Entraînement d'un modèle
+model = GradientBoostingRegressor(n_estimators=100, random_state=42)
+model.fit(X, y)
 
-X = df.iloc[:, 0:8]  # Features
-y = df.iloc[:, 9]    # Target
-shap_values = df.iloc[:, [10, 11, 12, 13, 14, 15, 16, 17]]  # SHAP values
-shap_values.columns = [col.replace('_shap', '') for col in shap_values.columns]
-
+# Calcul des SHAP values
+explainer = shap.TreeExplainer(model)
+shap_values_array = explainer.shap_values(X)
+shap_values = pd.DataFrame(shap_values_array, columns=X.columns, index=X.index)
 print(f"Taille du dataset: {len(X)} échantillons, {X.shape[1]} features")
 print(f"SHAP values shape: {shap_values.shape}")
 
